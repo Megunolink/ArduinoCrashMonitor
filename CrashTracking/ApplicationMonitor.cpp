@@ -1,5 +1,5 @@
 #include "ApplicationMonitor.h"
-#include <avr\eeprom.h>
+#include <avr/eeprom.h>
 
 using namespace Watchdog;
 
