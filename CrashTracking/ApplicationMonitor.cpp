@@ -10,12 +10,18 @@ values on the stack will be the program counter when the interrupt fired. We're
 going to save that in the eeprom then let the second watchdog event reset the
 micro. We never return from this function. 
 */
+uint8_t *upStack;
+extern "C" {
+  void appMon_asm_gate(void) __attribute__((used));
+  void appMon_asm_gate(void){
+    ApplicationMonitor.WatchdogInterruptHandler(upStack);
+  } 
+}
+
 ISR(WDT_vect, ISR_NAKED)
 {
   // Setup a pointer to the program counter. It goes in a register so we
   // don't mess up the stack. 
-  register uint8_t *upStack;
-
   upStack = (uint8_t*)SP;
   
   // The stack pointer on the AVR micro points to the next available location
@@ -23,7 +29,12 @@ ISR(WDT_vect, ISR_NAKED)
   // pushed onto the stack when the interrupt was triggered. There will be 
   // PROGRAM_COUNTER_SIZE bytes there. 
   ++upStack;
-  ApplicationMonitor.WatchdogInterruptHandler(upStack);
+
+  // Newer versions of GCC don't like when naked functions call regular functions
+  // so we use call an assembly gate function instead
+  __asm__ __volatile__ (
+    "call appMon_asm_gate \n"
+  );
 }
 
 /*
